@@ -13,3 +13,6 @@ public class EquipmentAlertServiceApp {
         // Mechanism: ActiveMQ Queue (guaranteed delivery)
     }
 }
+
+// MQ TODO: consumes ActiveMQ queue MqConfig.QUEUE at MqConfig.BROKER_URL (see co.wethinkcode.healthsafe.mq.MqConfig)
+// Producer: ward-service publishes here when it detects an equipment failure on one of its wards.

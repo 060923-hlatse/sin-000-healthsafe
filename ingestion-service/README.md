@@ -7,6 +7,35 @@ first stop in the HealthSafe pipeline. Independent Maven module, no parent pom.
 
 Part of the [HealthSafe](../README.md) project.
 
+REST: exposes the cleaned records for `ward-service` (`../ward-service`) to
+consume — see [Integration contracts](../README.md#integration-contracts) in the
+root README for the endpoint shape.
+
+## Example: one row cleaned
+
+Input (`wards-outdated.csv`, row 6):
+
+```
+w-05,east wing ,PAEDIATRICS,five
+```
+
+Expected shape after cleaning (exact field names are up to you — this illustrates
+the *kind* of transform expected, not a fixed schema to match exactly):
+
+```json
+{
+  "wardId": "W-05",
+  "wing": "East Wing",
+  "department": "Paediatrics",
+  "bedsAvailable": null,
+  "notes": "bedsAvailable was non-numeric ('five') — flagged for follow-up"
+}
+```
+
+Note this row is also a near-duplicate of `W-05` two rows above it (same real ward,
+different ID casing and field values) — deciding how to merge or flag duplicates
+like this is part of the exercise.
+
 ## Known data issues
 
 `wards-outdated.csv` is deliberately messy — cleaning it is the point of this service. Look

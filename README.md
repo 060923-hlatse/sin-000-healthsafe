@@ -31,6 +31,51 @@ for `staffing-events-topic`: Staffing updates are broadcast as Events via the br
 **Status:** scaffold only — build files, Javalin bootstrap, and TODOs are in place; no
 business logic has been implemented yet.
 
+## Your task
+
+Each stage below builds on the last — do them in order. Every service already builds
+and runs (`/health` returns `OK`); your job is to fill in the `TODO`s.
+
+1. **Ingestion** (required) — in `IngestionServiceApp`, read and clean
+   `wards-outdated.csv` (see [ingestion-service/README.md](ingestion-service/README.md)
+   for the known data issues and a worked example) and expose the cleaned records
+   over REST for `ward-service` to consume.
+2. **REST services** (required) — implement `ward-service`, `alert-level-service`,
+   and `staffing-service` per the [Integration contracts](#integration-contracts)
+   below: wards/departments lookup, Emergency Status tracking, and on-call
+   scheduling that calls the other two services synchronously over HTTP.
+3. **MQ decoupling** (stretch) — replace the synchronous call from `ward-service`
+   to `staffing-service` with the `staffing-events-topic` broadcast described in
+   [common/README.md](common/README.md), so staffing updates reach `ward-service`
+   asynchronously instead.
+4. **Alerting** (stretch) — have `ward-service` publish to the
+   `equipment-failure-queue` when it detects an equipment failure, and implement
+   `equipment-alert-service` as the guaranteed-delivery consumer (see
+   [equipment-alert-service/README.md](equipment-alert-service/README.md)).
+
+Stage 1-2 are the required core; stages 3-4 are where you can show judgment about
+when to reach for a queue/topic instead of a direct call. There's no fixed time
+limit, but budget your effort so you have a working stage 1-2 before spending time
+on 3-4 — a complete core beats a half-done everything.
+
+Automated tests aren't required, but are a good way to show your work — see each
+service's `## Test` section for how to add JUnit 5.
+
+## Integration contracts
+
+Endpoint shapes below are illustrative, not a fixed spec to match byte-for-byte —
+reasonable field names/status codes are fine as long as the calling service can
+consume them.
+
+| From | To | Call | Purpose |
+|---|---|---|---|
+| `ward-service` | `ingestion-service` | `GET /wards` → cleaned ward records | Populate its own ward/department list |
+| `staffing-service` | `ward-service` | `GET /wards/{id}` → `404` if unknown | Validate the ward before scheduling |
+| `staffing-service` | `alert-level-service` | `GET /alert-level` → `{ "level": 0-8 }` | Read current Emergency Status to size the on-call schedule |
+| `staffing-service` | `ward-service` (topic, stage 3) | publish to `staffing-events-topic` | Broadcast a schedule/status change |
+| `ward-service` (topic, stage 3) | — | subscribe to `staffing-events-topic` | React to staffing updates without polling |
+| `ward-service` (queue, stage 4) | `equipment-alert-service` | publish to `equipment-failure-queue` | Guarantee delivery of an equipment failure alert |
+
 ## Project structure
 
 ```
